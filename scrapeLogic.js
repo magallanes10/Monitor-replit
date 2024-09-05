@@ -35,7 +35,7 @@ const scrapeLogic = async (res, screenshot = false) => {
     }
 
     try {
-      await page.goto("https://www.marscode.com/dashboard", { waitUntil: 'networkidle2' });
+      await page.goto("https://replit.com/@Jonellmagallanes10/Puppeteer-render#index.js", { waitUntil: 'networkidle2' });
     } catch (err) {
       console.error("Error navigating to the site:", err);
     }
