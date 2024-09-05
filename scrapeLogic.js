@@ -1,20 +1,13 @@
 const puppeteer = require("puppeteer");
-const fs = require("fs");
 require("dotenv").config();
 
-const cookiesPath = "cookies.json";
-
-const scrapeLogic = async (res, screenshot = false) => {
+const scrapeLogic = async (res, url, deviceType) => {
   const browser = await puppeteer.launch({
     args: [
       "--disable-setuid-sandbox",
       "--no-sandbox",
       "--single-process",
       "--no-zygote",
-      "--ignore-certificate-errors",
-      "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--disable-dev-shm-usage"
     ],
     executablePath:
       process.env.NODE_ENV === "production"
@@ -25,36 +18,31 @@ const scrapeLogic = async (res, screenshot = false) => {
   try {
     const page = await browser.newPage();
 
-    if (fs.existsSync(cookiesPath)) {
-      try {
-        const cookies = JSON.parse(fs.readFileSync(cookiesPath));
-        await page.setCookie(...cookies);
-      } catch (err) {
-        console.error("Error loading cookies:", err);
-      }
+    let viewport;
+    switch (deviceType) {
+      case 'iphone':
+        viewport = puppeteer.devices['iPhone X'].viewport;
+        break;
+      case 'android':
+        viewport = puppeteer.devices['Pixel 2'].viewport;
+        break;
+      case 'tablet':
+        viewport = { width: 768, height: 1024 };
+        break;
+      case 'desktop':
+      default:
+        viewport = { width: 1080, height: 1024 };
+        break;
     }
 
-    try {
-      await page.goto("https://replit.com/@Jonellmagallanes10/Puppeteer-render#index.js", { waitUntil: 'networkidle2' });
-    } catch (err) {
-      console.error("Error navigating to the site:", err);
-    }
+    await page.setViewport(viewport);
 
-    await page.setViewport({ width: 1080, height: 1024 });
+    await page.goto(url, { waitUntil: 'networkidle2' });
 
-    if (screenshot) {
-      await page.screenshot({ path: "screenshot.png", fullPage: true });
-      res.sendFile(`${__dirname}/screenshot.png`);
-    } else {
-      const fullTitle = await page.title();
-      const logStatement = `The title of the page is ${fullTitle}`;
-      console.log(logStatement);
-      res.send(logStatement);
-    }
+    const screenshotPath = `screenshot-${deviceType}.png`;
+    await page.screenshot({ path: screenshotPath, fullPage: true });
 
-    const newCookies = await page.cookies();
-    fs.writeFileSync(cookiesPath, JSON.stringify(newCookies, null, 2));
-
+    res.sendFile(`${__dirname}/${screenshotPath}`);
   } catch (e) {
     console.error(e);
     res.send(`Something went wrong while running Puppeteer: ${e}`);
