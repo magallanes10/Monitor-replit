@@ -4,7 +4,7 @@ require("dotenv").config();
 
 const cookiesPath = "cookies.json";
 
-const scrapeLogic = async (res) => {
+const scrapeLogic = async (res, screenshot = false) => {
   const browser = await puppeteer.launch({
     args: [
       "--disable-setuid-sandbox",
@@ -22,7 +22,16 @@ const scrapeLogic = async (res) => {
     const page = await browser.newPage();
 
     if (fs.existsSync(cookiesPath)) {
-      const cookies = JSON.parse(fs.readFileSync(cookiesPath));
+      let cookies = JSON.parse(fs.readFileSync(cookiesPath));
+
+      // Ensure valid 'sameSite' values
+      cookies = cookies.map(cookie => {
+        if (cookie.sameSite && !['Strict', 'Lax', 'None'].includes(cookie.sameSite)) {
+          delete cookie.sameSite;
+        }
+        return cookie;
+      });
+
       await page.setCookie(...cookies);
     }
 
@@ -38,15 +47,16 @@ const scrapeLogic = async (res) => {
     const fullTitle = await textSelector.evaluate((el) => el.textContent);
     const logStatement = `The title of this blog post is ${fullTitle}`;
     console.log(logStatement);
-    res.send(logStatement);
 
     const cookies = await page.cookies();
     fs.writeFileSync(cookiesPath, JSON.stringify(cookies, null, 2));
 
-    await page.screenshot({ path: 'screenshot.png', fullPage: true });
-    console.log("Screenshot saved.");
-
-    // Browser will remain open without closing.
+    if (screenshot) {
+      await page.screenshot({ path: 'screenshot.png', fullPage: true });
+      res.sendFile(`${__dirname}/screenshot.png`);
+    } else {
+      res.send(logStatement);
+    }
     
   } catch (e) {
     console.error(e);
