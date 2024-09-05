@@ -1,7 +1,6 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const freeport = require("freeport");
-const ProxyChain = require("proxy-chain");
 require("dotenv").config();
 
 const cookiesPath = "cookies.json";
@@ -23,11 +22,6 @@ const scrapeLogic = async (res, screenshot = false) => {
     return;
   }
 
-  const proxyServer = `http://127.0.0.1:${proxyPort}`;
-  const proxy = new ProxyChain.Proxy({
-    port: proxyPort,
-  });
-
   const browser = await puppeteer.launch({
     args: [
       "--disable-setuid-sandbox",
@@ -38,7 +32,7 @@ const scrapeLogic = async (res, screenshot = false) => {
       "--disable-gpu",
       "--disable-software-rasterizer",
       "--disable-dev-shm-usage",
-      `--proxy-server=${proxyServer}`
+      `--proxy-server=127.0.0.1:${proxyPort}`
     ],
     executablePath:
       process.env.NODE_ENV === "production"
@@ -84,7 +78,6 @@ const scrapeLogic = async (res, screenshot = false) => {
     res.send(`Something went wrong while running Puppeteer: ${e}`);
   } finally {
     await browser.close();
-    proxy.close();
   }
 };
 
