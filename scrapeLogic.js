@@ -1,27 +1,10 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
-const freeport = require("freeport");
 require("dotenv").config();
 
 const cookiesPath = "cookies.json";
 
 const scrapeLogic = async (res, screenshot = false) => {
-  const proxyPort = await new Promise((resolve) => {
-    freeport((err, port) => {
-      if (err) {
-        console.error("Error finding a free port:", err);
-        resolve(null);
-      } else {
-        resolve(port);
-      }
-    });
-  });
-
-  if (!proxyPort) {
-    res.send("Error: Could not find a free port for the proxy server.");
-    return;
-  }
-
   const browser = await puppeteer.launch({
     args: [
       "--disable-setuid-sandbox",
@@ -31,8 +14,7 @@ const scrapeLogic = async (res, screenshot = false) => {
       "--ignore-certificate-errors",
       "--disable-gpu",
       "--disable-software-rasterizer",
-      "--disable-dev-shm-usage",
-      `--proxy-server=127.0.0.1:${proxyPort}`
+      "--disable-dev-shm-usage"
     ],
     executablePath:
       process.env.NODE_ENV === "production"
